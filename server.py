@@ -416,7 +416,7 @@ async def main():
         server = await websockets.serve(
             handle_connection, "0.0.0.0", 8081, max_size=50_000_000
         )
-        print("Server started on ws://0.0.0.0:8081")
+        print("Server started on ws://0.0.0.0:8083")
         await server.wait_closed()
     except Exception as e:
         logger.error(f"Error starting websocket server: {e}")
