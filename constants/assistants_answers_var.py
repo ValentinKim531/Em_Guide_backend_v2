@@ -2,38 +2,38 @@ from enum import Enum
 
 
 class RegistrationQuestions(Enum):
-    QUESTION_1 = {
+    INDEX_1 = {
         "options": [],
         "is_custom_option_allowed": True,
     }
-    QUESTION_2 = {
+    INDEX_2 = {
         "options": ["Да", "Нет"],
         "is_custom_option_allowed": False,
     }
-    QUESTION_3 = {
+    INDEX_3 = {
         "options": [],
         "is_custom_option_allowed": True,
     }
-    QUESTION_4 = {
+    INDEX_4 = {
         "options": ["Да", "Нет"],
-        "is_custom_option_allowed": True,  # Если "Да", то нужен свой вариант
+        "is_custom_option_allowed": True,
     }
-    QUESTION_5 = {
+    INDEX_5 = {
         "options": ["Да", "Нет"],
-        "is_custom_option_allowed": True,  # Если "Да", то нужен свой вариант
+        "is_custom_option_allowed": True,
     }
 
 
 class DailySurveyQuestions(Enum):
-    QUESTION_1 = {
+    INDEX_1 = {
         "options": ["Да", "Нет"],
-        "is_custom_option_allowed": True,  # Если "Да", то нужен свой вариант
+        "is_custom_option_allowed": True,
     }
-    QUESTION_2 = {
+    INDEX_2 = {
         "options": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
         "is_custom_option_allowed": False,
     }
-    QUESTION_3 = {
+    INDEX_3 = {
         "options": [
             "висок",
             "теменная область",
@@ -44,17 +44,17 @@ class DailySurveyQuestions(Enum):
             "лоб",
             "затылок",
         ],
-        "is_custom_option_allowed": True,  # Можно указать свой вариант ответа
+        "is_custom_option_allowed": True,
     }
-    QUESTION_4 = {
+    INDEX_4 = {
         "options": [
             "с одной стороны справа",
             "с одной стороны слева",
             "с двух сторон",
         ],
-        "is_custom_option_allowed": True,  # Можно указать свой вариант ответа
+        "is_custom_option_allowed": True,
     }
-    QUESTION_5 = {
+    INDEX_5 = {
         "options": [
             "давящая",
             "пульсирующая",
@@ -67,5 +67,5 @@ class DailySurveyQuestions(Enum):
             "острая",
             "жгучая",
         ],
-        "is_custom_option_allowed": True,  # Можно указать свой вариант ответа
+        "is_custom_option_allowed": True,
     }

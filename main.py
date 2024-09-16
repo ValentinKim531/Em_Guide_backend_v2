@@ -1,9 +1,8 @@
 import logging
 import asyncio
-from fastapi import FastAPI, BackgroundTasks, Depends
+from fastapi import FastAPI
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from handlers.process_message import process_message
 from crud import Postgres
 from services.database import async_session
 from services.yandex_service import get_iam_token, refresh_iam_token
