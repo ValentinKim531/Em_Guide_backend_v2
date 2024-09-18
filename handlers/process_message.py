@@ -1,15 +1,19 @@
 import json
-
+from datetime import datetime
+import re
 from constants.assistants_answers_var import (
     DailySurveyQuestions,
     RegistrationQuestions,
 )
 from models import User
 from services.openai_service import send_to_gpt
+from services.survey_service import update_survey_data
+from services.user_registration_service import update_user_registration_data
 from utils.config import ASSISTANT_ID, ASSISTANT2_ID
 from utils.redis_client import (
     get_user_dialogue_history,
     save_user_dialogue_history,
+    get_registration_status,
 )
 from crud import Postgres
 import logging
@@ -22,15 +26,18 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     Обрабатывает ответ пользователя на основании его состояния (регистрация или опрос) с учетом истории диалога.
     """
 
-    user = await db.get_entity_parameter(User, {"userid": user_id})
-    logger.info(f"message: {message}")
+    # Получаем статус регистрации из Redis
+    is_registration = await get_registration_status(user_id)
+    logger.info(f"is_registration for user is: {is_registration}")
 
-    if user:
-        instruction = ASSISTANT_ID
-        logger.info(f"Assistant is daily survey")
-    else:
+    if is_registration:
+        # Направляем запрос в GPT с инструкцией по регистрации
         instruction = ASSISTANT2_ID
-        logger.info(f"Assistant is Registration")
+        logger.info(f"Assistant is in registration mode for user {user_id}")
+    else:
+        # Направляем запрос в GPT с инструкцией по опросу
+        instruction = ASSISTANT_ID
+        logger.info(f"Assistant is in daily survey mode for user {user_id}")
 
     # Извлекаем историю диалога
     dialogue_history = await get_user_dialogue_history(user_id)
@@ -59,6 +66,62 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
             "status": "error",
             "message": "Ошибка при обработке ответа от GPT",
         }
+
+    # Проверяем, что ответ валидирован, то есть отсутствует ключ 'question'
+    if "question" not in gpt_response_content:
+        if is_registration:
+            if gpt_response_content["index"] == 1:
+                try:
+                    # Удаляем запятые, если они есть
+                    text = gpt_response_content["text"].replace(",", "")
+
+                    # Используем регулярное выражение для поиска первой даты в тексте
+                    match = re.search(r"\d{1,2} \w+ \d{4}", text)
+
+                    if match:
+                        # Извлекаем ФИО и дату
+                        birthdate_str = match.group(
+                            0
+                        )  # Дата (например, 20 January 2000)
+                        fio = text[: match.start()].strip()  # ФИО до даты
+
+                        # Преобразуем дату в нужный формат
+                        birthdate = datetime.strptime(
+                            birthdate_str, "%d %B %Y"
+                        ).date()
+
+                        # Создаем нового пользователя с указанными данными
+                        logger.info(
+                            f"User with userid {user_id} not found, creating a new one with fio and birthdate"
+                        )
+                        new_user_data = {
+                            "userid": user_id,
+                            "fio": fio,
+                            "birthdate": birthdate,
+                        }
+                        await db.add_entity(new_user_data, User)
+
+                        logger.info(
+                            f"Created user {user_id} with fio: {fio} and birthdate: {birthdate}"
+                        )
+                    else:
+                        raise ValueError("Date not found in the text")
+                except ValueError as e:
+                    logger.error(
+                        f"Error parsing fio and birthdate from message: {gpt_response_content['text']}. Error: {e}"
+                    )
+                    return {
+                        "type": "response",
+                        "status": "error",
+                        "message": "Invalid data format for fio and birthdate",
+                    }
+            else:
+                await update_user_registration_data(
+                    db, user_id, gpt_response_content
+                )
+
+        else:
+            await update_survey_data(db, user_id, gpt_response_content)
 
     if "question" in gpt_response_content:
         # Получаем индекс текущего вопроса

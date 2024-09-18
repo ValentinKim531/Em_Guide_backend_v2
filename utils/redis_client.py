@@ -7,9 +7,6 @@ import json
 # Инициализация подключения к Redis
 redis = aioredis.from_url(REDIS_URL)
 
-# Локальный кеш для хранения данных при отказе Redis
-local_thread_cache = defaultdict(dict)
-
 
 logger = logging.getLogger(__name__)
 
@@ -50,3 +47,36 @@ async def delete_user_dialogue_history(user_id: str) -> None:
         logger.error(
             f"Ошибка при удалении истории диалога для пользователя {user_id}: {e}"
         )
+
+
+async def save_registration_status(user_id: str, is_registration: bool):
+    """
+    Сохраняет статус регистрации в Redis.
+    """
+    try:
+        await redis.set(
+            f"registration_status:{user_id}",
+            json.dumps({"is_registration": is_registration}),
+        )
+    except Exception as e:
+        logger.error(
+            f"Error saving registration status for user {user_id}: {e}"
+        )
+
+
+async def get_registration_status(user_id: str) -> bool:
+    """
+    Получает статус регистрации из Redis.
+    """
+    try:
+        registration_status = await redis.get(f"registration_status:{user_id}")
+        if registration_status:
+            return json.loads(registration_status).get(
+                "is_registration", False
+            )
+        return False
+    except Exception as e:
+        logger.error(
+            f"Error getting registration status for user {user_id}: {e}"
+        )
+        return False

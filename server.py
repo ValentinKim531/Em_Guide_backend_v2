@@ -5,11 +5,14 @@ import json
 from crud import Postgres
 from handlers.process_message import process_user_message
 from models import User
-from utils.redis_client import delete_user_dialogue_history
 import logging
 from services.database import async_session
 import ftfy
 
+from utils.redis_client import (
+    save_registration_status,
+    delete_user_dialogue_history,
+)
 
 db = Postgres(async_session)
 logger = logging.getLogger(__name__)
@@ -47,6 +50,9 @@ async def handle_command(action, user_id, db: Postgres):
                 is_registration = False
             else:
                 is_registration = True
+
+            # Сохранить статус регистрации в Redis
+            await save_registration_status(user_id, is_registration)
 
             return {
                 "type": "response",
