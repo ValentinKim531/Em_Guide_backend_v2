@@ -44,9 +44,9 @@ async def handle_command(action, user_id, db: Postgres):
             user = await db.get_entity_parameter(User, {"userid": user_id})
 
             if user:
-                is_registration = True
-            else:
                 is_registration = False
+            else:
+                is_registration = True
 
             return {
                 "type": "response",
