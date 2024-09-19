@@ -2,7 +2,7 @@ import logging
 from typing import Optional, Union, Any, Type
 from sqlalchemy.future import select
 from models.models import Database, Base
-
+from sqlalchemy import and_
 
 logger = logging.getLogger(__name__)
 
@@ -30,20 +30,28 @@ class Postgres(Database):
             logger.error(f"Error adding entity: {e}")
             return None
 
+    from sqlalchemy import select, and_
+
     async def get_entity_parameter(
         self,
         model_class: type[Base],
         filters: Optional[dict] = None,
-        parameter: Optional[str] = None,
-    ) -> Optional[Union[Base, Any]]:
+        custom_filter: Optional[Any] = None,
+    ) -> Optional[Base]:
         try:
             async with self.async_session() as session:
-                result = await session.execute(
-                    select(model_class).filter_by(**filters)
-                )
+                query = select(model_class)
+
+                if filters:
+                    query = query.filter_by(**filters)
+
+                if custom_filter:
+                    query = query.where(
+                        custom_filter
+                    )  # Используем .where для добавления условия
+
+                result = await session.execute(query)
                 entity = result.scalars().first()
-                if entity and parameter:
-                    return getattr(entity, parameter, None)
                 return entity
         except Exception as e:
             logger.error(f"Error fetching entity parameter: {e}")

@@ -2,6 +2,7 @@ import logging
 from crud import Postgres
 from models import Survey
 from datetime import datetime, timedelta, timezone
+from sqlalchemy import and_, select
 
 logger = logging.getLogger(__name__)
 
@@ -12,22 +13,39 @@ async def update_survey_data(db: Postgres, user_id: str, message: dict):
     Если запись по опросу еще не существует или была создана более 1 часа назад, создается новая.
     """
     try:
-        # Получаем текущее время
-        current_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+        # Текущее время
+        current_time = datetime.now(timezone.utc)
 
-        # Порог времени для создания новой записи — 1 час назад
+        # Начало сегодняшнего дня
+        today_start = current_time.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+
+        # Порог времени для проверки на запись созданную менее 1 часа назад
         one_hour_ago = current_time - timedelta(hours=1)
 
-        # Проверяем, существует ли запись, созданная за последние 1 час
-        survey = await db.get_entity_parameter(
-            Survey,
-            filters={
-                "userid": user_id,
-            },
-        )
+        logger.info(f"Current time (UTC): {current_time}")
+        logger.info(f"Today start (UTC): {today_start}")
+        logger.info(f"Time 1 hour ago: {one_hour_ago}")
+
+        # Поиск записи с userid и фильтрация по дате создания
+        async with db.async_session() as session:
+            # Создаем запрос для поиска записи по user_id и времени создания
+            query = select(Survey).where(
+                and_(
+                    Survey.userid == user_id,
+                    Survey.created_at
+                    >= today_start,  # Фильтр по сегодняшнему дню
+                    Survey.created_at
+                    >= one_hour_ago,  # Фильтр по времени создания записи менее 1 часа назад
+                )
+            )
+            result = await session.execute(query)
+            survey = result.scalars().first()
 
         # Если запись существует и была создана менее 1 часа назад, обновляем её
         if survey and survey.created_at >= one_hour_ago:
+            logger.info(f"survey_created_at: {survey.created_at}")
             logger.info(
                 f"Found survey created within the last hour for user {user_id}. Updating it."
             )

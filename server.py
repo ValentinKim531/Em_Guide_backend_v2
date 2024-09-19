@@ -9,6 +9,7 @@ import logging
 from services.database import async_session
 import ftfy
 
+from services.statistics_service import generate_statistics_file
 from utils.redis_client import (
     save_registration_status,
     delete_user_dialogue_history,
@@ -36,7 +37,7 @@ async def verify_token_with_auth_server(token):
         return None
 
 
-async def handle_command(action, user_id, db: Postgres):
+async def handle_command(action, user_id, database: Postgres):
     """
     Обрабатывает команду, связанную с инициализацией чата или другими действиями.
     """
@@ -44,7 +45,9 @@ async def handle_command(action, user_id, db: Postgres):
         try:
             await delete_user_dialogue_history(user_id)
 
-            user = await db.get_entity_parameter(User, {"userid": user_id})
+            user = await database.get_entity_parameter(
+                User, {"userid": user_id}
+            )
 
             if user:
                 is_registration = False
@@ -70,6 +73,32 @@ async def handle_command(action, user_id, db: Postgres):
                 "status": "error",
                 "error": "server_error",
                 "message": "An internal server error occurred.",
+            }
+    elif action == "export_stats":
+        try:
+            stats = await generate_statistics_file(user_id, database)
+            if not stats:
+                return {
+                    "type": "response",
+                    "status": "error",
+                    "action": "export_stats",
+                    "error": "no_stats",
+                    "message": "No stats available.",
+                }
+            return {
+                "type": "response",
+                "status": "success",
+                "action": "export_stats",
+                "data": {"file_json": stats},
+            }
+        except Exception as e:
+            logger.error(f"Error generating export stats: {e}")
+            return {
+                "type": "response",
+                "status": "error",
+                "action": "export_stats",
+                "error": "server_error",
+                "message": "An internal server error occurred. Please try again later.",
             }
 
 
@@ -99,6 +128,9 @@ async def handle_connection(websocket, path):
             type = data.get("type")
 
             if action == "initial_chat":
+                response = await handle_command(action, user_id, db)
+                await websocket.send(json.dumps(response, ensure_ascii=False))
+            elif action == "export_stats":
                 response = await handle_command(action, user_id, db)
                 await websocket.send(json.dumps(response, ensure_ascii=False))
 
