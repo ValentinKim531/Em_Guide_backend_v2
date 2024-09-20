@@ -7,6 +7,7 @@ from constants.assistants_answers_var import (
 )
 from models import User
 from services.openai_service import send_to_gpt
+from services.save_message_to_db import save_message_to_db
 from services.survey_service import update_survey_data
 from services.user_registration_service import update_user_registration_data
 from utils.config import ASSISTANT_ID, ASSISTANT2_ID
@@ -61,9 +62,16 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     dialogue_history.append(
         {"role": "user", "content": json.dumps(message, ensure_ascii=False)}
     )
+    # Сохраняем сообщение пользователя в базу данных
+    await save_message_to_db(
+        db, user_id, json.dumps(message, ensure_ascii=False), True
+    )
 
     # Отправляем запрос в GPT с текущей историей диалога
     gpt_response = await send_to_gpt(dialogue_history, instruction)
+
+    # Сохраняем ответ GPT в базу данных
+    await save_message_to_db(db, user_id, gpt_response, False)
 
     # Добавляем ответ GPT в историю
     dialogue_history.append({"role": "assistant", "content": gpt_response})
