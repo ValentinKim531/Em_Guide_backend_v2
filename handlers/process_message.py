@@ -16,6 +16,7 @@ from utils.redis_client import (
     get_registration_status,
 )
 from crud import Postgres
+from services.audio_text_processor import process_audio_and_text
 import logging
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     # Получаем статус регистрации из Redis
     is_registration = await get_registration_status(user_id)
     logger.info(f"is_registration for user is: {is_registration}")
+    logger.info(f"message_data: {message}")
 
     if is_registration:
         # Направляем запрос в GPT с инструкцией по регистрации
@@ -42,6 +44,19 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     # Извлекаем историю диалога
     dialogue_history = await get_user_dialogue_history(user_id)
 
+    user_language = "ru"
+    text = await process_audio_and_text(message, user_language)
+    logger.info(f"text: {text}")
+    # Если текст не извлечен из аудио, возвращаем сообщение об ошибке
+    if not text:
+        return {
+            "type": "response",
+            "status": "error",
+            "message": "Не удалось распознать аудио. Пожалуйста, попробуйте еще раз.",
+        }
+
+    message["text"] = text
+    message["audio"] = None
     # Добавляем текущее сообщение пользователя в историю
     dialogue_history.append(
         {"role": "user", "content": json.dumps(message, ensure_ascii=False)}
