@@ -26,7 +26,11 @@ class RegistrationQuestions(Enum):
 
 class DailySurveyQuestions(Enum):
     INDEX_1 = {
-        "options": ["Да", "Нет"],
+        "options": [
+            "Не болела",
+            "Болела, не принимал",
+            "Болела, принимал",
+        ],
         "is_custom_option_allowed": True,
     }
     INDEX_2 = {
