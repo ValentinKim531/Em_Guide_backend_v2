@@ -28,10 +28,14 @@ async def generate_statistics_file(user_id, db: Postgres):
         data = [
             {
                 "Номер": str(record.survey_id),
-                "Дата создания": record.created_at.strftime("%Y-%m-%d %H:%M"),
+                "Дата создания": record.created_at.strftime(
+                    "%Y-%m-%dT%H:%M:%S"
+                )
+                + "Z",
                 "Дата обновления": record.updated_at.strftime(
-                    "%Y-%m-%d %H:%M"
-                ),
+                    "%Y-%m-%dT%H:%M:%S"
+                )
+                + "Z",
                 "Головная боль сегодня": record.headache_today,
                 "Принимали ли медикаменты": record.medicament_today,
                 "Интенсивность боли": record.pain_intensity,

@@ -73,4 +73,3 @@ class DailySurveyQuestions(Enum):
         ],
         "is_custom_option_allowed": True,
     }
-
