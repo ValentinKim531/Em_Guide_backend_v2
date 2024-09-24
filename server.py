@@ -29,6 +29,7 @@ async def verify_token_with_auth_server(token):
         async with httpx.AsyncClient() as client:
             response = await client.get(url, headers=headers)
             if response.status_code == 200:
+                logger.info(f"responsejwt: {response.json()}")
                 return response.json()  # Возвращаем данные пользователя
             else:
                 return None
@@ -41,40 +42,40 @@ async def handle_command(action, user_id, database: Postgres):
     """
     Обрабатывает команду, связанную с инициализацией чата или другими действиями.
     """
-    if action == "initial_chat":
-        try:
-            await delete_user_dialogue_history(user_id)
-
-            user = await database.get_entity_parameter(
-                User, {"userid": user_id}
-            )
-
-            if user:
-                is_registration = False
-            else:
-                is_registration = True
-
-            # Сохранить статус регистрации в Redis
-            await save_registration_status(user_id, is_registration)
-
-            return {
-                "type": "response",
-                "status": "success",
-                "action": "initial_chat",
-                "data": {
-                    "is_registration": is_registration,
-                },
-            }
-
-        except Exception as e:
-            logger.error(f"Error processing initial chat: {e}")
-            return {
-                "type": "response",
-                "status": "error",
-                "error": "server_error",
-                "message": "An internal server error occurred.",
-            }
-    elif action == "export_stats":
+    # if action == "initial_chat":
+    #     try:
+    #         await delete_user_dialogue_history(user_id)
+    #
+    #         user = await database.get_entity_parameter(
+    #             User, {"userid": user_id}
+    #         )
+    #
+    #         if user:
+    #             is_registration = False
+    #         else:
+    #             is_registration = True
+    #
+    #         # Сохранить статус регистрации в Redis
+    #         await save_registration_status(user_id, is_registration)
+    #
+    #         return {
+    #             "type": "response",
+    #             "status": "success",
+    #             "action": "initial_chat",
+    #             "data": {
+    #                 "is_registration": is_registration,
+    #             },
+    #         }
+    #
+    #     except Exception as e:
+    #         logger.error(f"Error processing initial chat: {e}")
+    #         return {
+    #             "type": "response",
+    #             "status": "error",
+    #             "error": "server_error",
+    #             "message": "An internal server error occurred.",
+    #         }
+    if action == "export_stats":
         try:
             stats = await generate_statistics_file(user_id, database)
             if not stats:
@@ -127,10 +128,10 @@ async def handle_connection(websocket, path):
             action = data.get("action")
             type = data.get("type")
 
-            if action == "initial_chat":
-                response = await handle_command(action, user_id, db)
-                await websocket.send(json.dumps(response, ensure_ascii=False))
-            elif action == "export_stats":
+            # if action == "initial_chat":
+            #     response = await handle_command(action, user_id, db)
+            #     await websocket.send(json.dumps(response, ensure_ascii=False))
+            if action == "export_stats":
                 response = await handle_command(action, user_id, db)
                 await websocket.send(json.dumps(response, ensure_ascii=False))
 

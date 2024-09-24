@@ -26,18 +26,21 @@ class RegistrationQuestions(Enum):
 
 class DailySurveyQuestions(Enum):
     INDEX_1 = {
+        "options": ["Да", "Нет"],
+        "is_custom_option_allowed": False,
+    }
+    INDEX_2 = {
         "options": [
-            "Не болела",
-            "Болела, не принимал",
-            "Болела, принимал",
+            "Да, принимал",
+            "Нет, не принимал",
         ],
         "is_custom_option_allowed": True,
     }
-    INDEX_2 = {
+    INDEX_3 = {
         "options": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
         "is_custom_option_allowed": False,
     }
-    INDEX_3 = {
+    INDEX_4 = {
         "options": [
             "висок",
             "теменная область",
@@ -50,7 +53,7 @@ class DailySurveyQuestions(Enum):
         ],
         "is_custom_option_allowed": True,
     }
-    INDEX_4 = {
+    INDEX_5 = {
         "options": [
             "с одной стороны справа",
             "с одной стороны слева",
@@ -58,7 +61,7 @@ class DailySurveyQuestions(Enum):
         ],
         "is_custom_option_allowed": True,
     }
-    INDEX_5 = {
+    INDEX_6 = {
         "options": [
             "давящая",
             "пульсирующая",

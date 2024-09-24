@@ -117,7 +117,7 @@ class Survey(Base):
     )
     headache_today = Column(String)
     medicament_today = Column(String)
-    pain_intensity = Column(Integer)
+    pain_intensity = Column(String)
     pain_area = Column(String)
     area_detail = Column(String)
     pain_type = Column(String)

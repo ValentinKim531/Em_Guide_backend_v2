@@ -58,34 +58,34 @@ async def update_survey_data(db: Postgres, user_id: str, message: dict):
                     Survey,
                 )
             elif message["index"] == 2:
-                try:
-                    pain_intensity = int(message["text"])
-                    await db.update_entity_parameter(
-                        (survey.survey_id, user_id),
-                        "pain_intensity",
-                        pain_intensity,
-                        Survey,
-                    )
-                except ValueError:
-                    logger.error(
-                        f"Invalid input for pain_intensity: {message['text']}"
-                    )
-
+                await db.update_entity_parameter(
+                    (survey.survey_id, user_id),
+                    "medicament_today",
+                    message["text"],
+                    Survey,
+                )
             elif message["index"] == 3:
                 await db.update_entity_parameter(
                     (survey.survey_id, user_id),
-                    "pain_area",
+                    "pain_intensity",
                     message["text"],
                     Survey,
                 )
             elif message["index"] == 4:
                 await db.update_entity_parameter(
                     (survey.survey_id, user_id),
-                    "area_detail",
+                    "pain_area",
                     message["text"],
                     Survey,
                 )
             elif message["index"] == 5:
+                await db.update_entity_parameter(
+                    (survey.survey_id, user_id),
+                    "area_detail",
+                    message["text"],
+                    Survey,
+                )
+            elif message["index"] == 6:
                 await db.update_entity_parameter(
                     (survey.survey_id, user_id),
                     "pain_type",
@@ -108,22 +108,14 @@ async def update_survey_data(db: Postgres, user_id: str, message: dict):
             if message["index"] == 1:
                 new_survey_data["headache_today"] = message["text"]
             elif message["index"] == 2:
-                try:
-                    new_survey_data["pain_intensity"] = int(message["text"])
-                except ValueError as e:
-                    logger.error(
-                        f"Error converting pain intensity to integer: {e}"
-                    )
-                    return {
-                        "type": "response",
-                        "status": "error",
-                        "message": "Invalid input for pain intensity, must be a number.",
-                    }
+                new_survey_data["medicament_today"] = message["text"]
             elif message["index"] == 3:
-                new_survey_data["pain_area"] = message["text"]
+                new_survey_data["pain_intensity"] = message["text"]
             elif message["index"] == 4:
-                new_survey_data["area_detail"] = message["text"]
+                new_survey_data["pain_area"] = message["text"]
             elif message["index"] == 5:
+                new_survey_data["area_detail"] = message["text"]
+            elif message["index"] == 6:
                 new_survey_data["pain_type"] = message["text"]
 
             # Добавляем новую запись

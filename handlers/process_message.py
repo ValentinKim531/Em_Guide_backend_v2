@@ -14,7 +14,6 @@ from utils.config import ASSISTANT_ID, ASSISTANT2_ID
 from utils.redis_client import (
     get_user_dialogue_history,
     save_user_dialogue_history,
-    get_registration_status,
 )
 from crud import Postgres
 from services.audio_text_processor import process_audio_and_text
@@ -29,9 +28,18 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     """
 
     # Получаем статус регистрации из Redis
-    is_registration = await get_registration_status(user_id)
+    # is_registration = await get_registration_status(user_id)
+    is_registration = False
     logger.info(f"is_registration for user is: {is_registration}")
     logger.info(f"message_data: {message}")
+
+    # регистрация пользователя по номеру телефона, если нет в базе users
+    existing_user = await db.get_entity_parameter(
+        User, {"userid": str(user_id)}
+    )
+    logger.info(f"existing_user: {existing_user}")
+    if not existing_user:
+        await db.add_entity({"userid": str(user_id)}, User)
 
     if is_registration:
         # Направляем запрос в GPT с инструкцией по регистрации
@@ -66,6 +74,9 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     await save_message_to_db(
         db, user_id, json.dumps(message, ensure_ascii=False), True
     )
+
+    # Сохраняем сообщение пользователя в опрос
+    await update_survey_data(db, user_id, message)
 
     # Отправляем запрос в GPT с текущей историей диалога
     gpt_response = await send_to_gpt(dialogue_history, instruction)
