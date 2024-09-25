@@ -29,7 +29,6 @@ async def verify_token_with_auth_server(token):
         async with httpx.AsyncClient() as client:
             response = await client.get(url, headers=headers)
             if response.status_code == 200:
-                logger.info(f"responsejwt: {response.json()}")
                 return response.json()  # Возвращаем данные пользователя
             else:
                 return None

@@ -52,6 +52,7 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
 
     # Извлекаем историю диалога
     dialogue_history = await get_user_dialogue_history(user_id)
+    logger.info(f"dialogue_history_begin: {dialogue_history}")
 
     user_language = "ru"
     text = await process_audio_and_text(message, user_language)
@@ -88,7 +89,7 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     dialogue_history.append({"role": "assistant", "content": gpt_response})
 
     # Сохраняем обновленную историю в Redis
-    await save_user_dialogue_history(user_id, dialogue_history)
+    # await save_user_dialogue_history(user_id, dialogue_history)
 
     # Проверяем наличие ключа "question" в ответе GPT
     try:
