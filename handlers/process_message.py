@@ -10,7 +10,7 @@ from services.openai_service import send_to_gpt
 from services.save_message_to_db import save_message_to_db
 from services.survey_service import update_survey_data
 from services.user_registration_service import update_user_registration_data
-from utils.config import ASSISTANT_ID, ASSISTANT2_ID
+from utils.config import ASSISTANT_ID, ASSISTANT2_ID, ASSISTANT3_ID
 from utils.redis_client import (
     get_user_dialogue_history,
     save_user_dialogue_history,
@@ -46,9 +46,16 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
         instruction = ASSISTANT2_ID
         logger.info(f"Assistant is in registration mode for user {user_id}")
     else:
-        # Направляем запрос в GPT с инструкцией по опросу
-        instruction = ASSISTANT_ID
-        logger.info(f"Assistant is in daily survey mode for user {user_id}")
+        if message["action"] == "all_in_one_message":
+            instruction = ASSISTANT3_ID
+            logger.info(
+                f"Assistant is in all_in_one_message mode for user {user_id}"
+            )
+        else:
+            instruction = ASSISTANT_ID
+            logger.info(
+                f"Assistant is in daily survey mode for user {user_id}"
+            )
 
     # Извлекаем историю диалога
     dialogue_history = await get_user_dialogue_history(user_id)
@@ -71,12 +78,35 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     dialogue_history.append(
         {"role": "user", "content": json.dumps(message, ensure_ascii=False)}
     )
+
     # Сохраняем сообщение пользователя в базу данных
     await save_message_to_db(
         db, user_id, json.dumps(message, ensure_ascii=False), True
     )
 
-    # Сохраняем сообщение пользователя в опрос
+    if message["action"] == "all_in_one_message":
+        gpt_response = await send_to_gpt(dialogue_history, instruction)
+        # Добавляем ответ GPT в историю
+        dialogue_history.append({"role": "assistant", "content": gpt_response})
+        logger.info(f"gpt_response_from_111: {gpt_response}")
+
+        try:
+            gpt_response_content = json.loads(gpt_response)
+            logger.info(f"gpt_response_type: {type(gpt_response_content)}")
+            gpt_response_for_update = gpt_response_content.get("data")
+            for message in gpt_response_for_update:
+                await update_survey_data(db, user_id, message)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding GPT response: {e}")
+            return {
+                "type": "response",
+                "status": "error",
+                "message": "Ошибка при обработке ответа от GPT",
+            }
+
+        return gpt_response_content
+
+    # Сохраняем сообщение пользователя в базу опросов
     await update_survey_data(db, user_id, message)
 
     # Отправляем запрос в GPT с текущей историей диалога

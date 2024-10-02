@@ -12,6 +12,8 @@ async def update_survey_data(db: Postgres, user_id: str, message: dict):
     Обновляет информацию по ежедневному опросу на основании полученных данных.
     Если запись по опросу еще не существует или была создана более 1 часа назад, создается новая.
     """
+    logger.info(f"message_for_updating_survey: {message}")
+
     try:
         # Текущее время
         current_time = datetime.now(timezone.utc)
@@ -50,42 +52,42 @@ async def update_survey_data(db: Postgres, user_id: str, message: dict):
                 f"Found survey created within the last hour for user {user_id}. Updating it."
             )
 
-            if message["index"] == 1:
+            if message["index"] == 1 and message["text"]:
                 await db.update_entity_parameter(
                     (survey.survey_id, user_id),
                     "headache_today",
                     message["text"],
                     Survey,
                 )
-            elif message["index"] == 2:
+            elif message["index"] == 2 and message["text"]:
                 await db.update_entity_parameter(
                     (survey.survey_id, user_id),
                     "medicament_today",
                     message["text"],
                     Survey,
                 )
-            elif message["index"] == 3:
+            elif message["index"] == 3 and message["text"]:
                 await db.update_entity_parameter(
                     (survey.survey_id, user_id),
                     "pain_intensity",
                     message["text"],
                     Survey,
                 )
-            elif message["index"] == 4:
+            elif message["index"] == 4 and message["text"]:
                 await db.update_entity_parameter(
                     (survey.survey_id, user_id),
                     "pain_area",
                     message["text"],
                     Survey,
                 )
-            elif message["index"] == 5:
+            elif message["index"] == 5 and message["text"]:
                 await db.update_entity_parameter(
                     (survey.survey_id, user_id),
                     "area_detail",
                     message["text"],
                     Survey,
                 )
-            elif message["index"] == 6:
+            elif message["index"] == 6 and message["text"]:
                 await db.update_entity_parameter(
                     (survey.survey_id, user_id),
                     "pain_type",
@@ -105,17 +107,17 @@ async def update_survey_data(db: Postgres, user_id: str, message: dict):
             new_survey_data = {"userid": user_id}
 
             # Заполняем первое поле в новой записи
-            if message["index"] == 1:
+            if message["index"] == 1 and message["text"]:
                 new_survey_data["headache_today"] = message["text"]
-            elif message["index"] == 2:
+            elif message["index"] == 2 and message["text"]:
                 new_survey_data["medicament_today"] = message["text"]
-            elif message["index"] == 3:
+            elif message["index"] == 3 and message["text"]:
                 new_survey_data["pain_intensity"] = message["text"]
-            elif message["index"] == 4:
+            elif message["index"] == 4 and message["text"]:
                 new_survey_data["pain_area"] = message["text"]
-            elif message["index"] == 5:
+            elif message["index"] == 5 and message["text"]:
                 new_survey_data["area_detail"] = message["text"]
-            elif message["index"] == 6:
+            elif message["index"] == 6 and message["text"]:
                 new_survey_data["pain_type"] = message["text"]
 
             # Добавляем новую запись

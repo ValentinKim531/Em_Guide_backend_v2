@@ -1,5 +1,6 @@
 import base64
 import io
+import os
 import subprocess
 import tempfile
 from pydub import AudioSegment
@@ -59,10 +60,20 @@ async def process_audio_and_text(message_data, user_language):
             # Конвертируем в OGG
             try:
                 ogg_io = io.BytesIO()
-                audio.export(ogg_io, format="ogg")
+                audio.export(ogg_io, format="ogg", codec="libopus")
                 ogg_io.seek(0)
                 audio_content = ogg_io.read()
                 logger.info("Successfully converted audio to OGG format.")
+
+                # Сохранение аудиофайла в корень проекта
+                # file_name = "audio_output.ogg"
+                # file_path = os.path.join(
+                #     os.getcwd(), file_name
+                # )  # Путь к корню проекта
+                # with open(file_path, "wb") as ogg_file:
+                #     ogg_file.write(audio_content)
+                # logger.info(f"Audio file saved successfully at: {file_path}")
+
             except Exception as e:
                 logger.error(f"Failed to convert audio to OGG format: {e}")
                 raise

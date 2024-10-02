@@ -29,6 +29,7 @@ async def verify_token_with_auth_server(token):
         async with httpx.AsyncClient() as client:
             response = await client.get(url, headers=headers)
             if response.status_code == 200:
+                logger.info(f"responseJWT: {response.json()}")
                 return response.json()  # Возвращаем данные пользователя
             else:
                 return None
@@ -135,8 +136,12 @@ async def handle_connection(websocket, path):
                 await websocket.send(json.dumps(response, ensure_ascii=False))
 
             # Обработка сообщений (например, ответы на вопросы опроса)
-            if type == "message":
+            if type == "message" or (
+                type == "command" and action == "all_in_one_message"
+            ):
                 message_data = data.get("data")
+                message_data["action"] = data.get("action")
+
                 if "text" in message_data:
                     fixed_text = ftfy.fix_text(message_data["text"])
                     message_data["text"] = fixed_text
