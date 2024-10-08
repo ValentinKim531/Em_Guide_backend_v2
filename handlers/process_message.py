@@ -69,7 +69,9 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
         return {
             "type": "response",
             "status": "error",
-            "message": "Не удалось распознать аудио. Пожалуйста, попробуйте еще раз.",
+            "action": "all_in_one_message",
+            "error": "server_error",
+            "message": "An internal server error occurred. Please try again.",
         }
 
     message["text"] = text
@@ -101,6 +103,8 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
             return {
                 "type": "response",
                 "status": "error",
+                "action": "all_in_one_message",
+                "error": "server_error",
                 "message": "Ошибка при обработке ответа от GPT",
             }
 
@@ -129,6 +133,8 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
         return {
             "type": "response",
             "status": "error",
+            "action": "all_in_one_message",
+            "error": "server_error",
             "message": "Ошибка при обработке ответа от GPT",
         }
 
