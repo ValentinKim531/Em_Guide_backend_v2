@@ -66,13 +66,22 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     logger.info(f"text: {text}")
     # Если текст не извлечен из аудио, возвращаем сообщение об ошибке
     if not text:
-        return {
-            "type": "response",
-            "status": "error",
-            "action": "all_in_one_message",
-            "error": "server_error",
-            "message": "К сожалению, не удалось распознать ваш голос. Попробуйте, пожалуйста, ещё раз.",
-        }
+        if instruction == ASSISTANT3_ID:
+            return {
+                "type": "response",
+                "status": "error",
+                "action": "all_in_one_message",
+                "error": "server_error",
+                "message": "К сожалению, не удалось распознать ваш голос. Попробуйте, пожалуйста, ещё раз.",
+            }
+        elif instruction == ASSISTANT_ID:
+            return {
+                "type": "response",
+                "status": "error",
+                "action": "message",
+                "error": "server_error",
+                "message": "К сожалению, не удалось распознать ваш ответ. Попробуйте, пожалуйста, ещё раз.",
+            }
 
     message["text"] = text
     message["audio"] = None
