@@ -71,7 +71,7 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
             "status": "error",
             "action": "all_in_one_message",
             "error": "server_error",
-            "message": "An internal server error occurred. Please try again.",
+            "message": "К сожалению, не удалось распознать ваш голос. Попробуйте, пожалуйста, ещё раз.",
         }
 
     message["text"] = text
@@ -133,7 +133,6 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
         return {
             "type": "response",
             "status": "error",
-            "action": "all_in_one_message",
             "error": "server_error",
             "message": "Ошибка при обработке ответа от GPT",
         }
