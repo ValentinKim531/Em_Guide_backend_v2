@@ -133,6 +133,15 @@ async def handle_connection(websocket, path):
                         json.dumps(response, ensure_ascii=False)
                     )
                     continue
+            else:
+                logger.warning("Token not provided in the request.")
+                response = {
+                    "type": "response",
+                    "status": "error",
+                    "error": "missing_token",
+                    "message": "Authentication token is required but was not provided.",
+                }
+                await websocket.send(json.dumps(response, ensure_ascii=False))
 
             # Проверяем наличие user_data перед извлечением user_id
             if user_data:
