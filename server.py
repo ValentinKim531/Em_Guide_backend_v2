@@ -27,7 +27,7 @@ async def verify_token_with_auth_server(token):
         url = "https://backoffice.daribar.com/api/v1/users"
         headers = {"Authorization": f"Bearer {token}"}
         logger.info(f"Token: {token}")
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10) as client:
             response = await client.get(url, headers=headers)
             if response.status_code == 200:
                 logger.info(f"responseJWT: {response.json()}")
@@ -115,22 +115,39 @@ async def handle_connection(websocket, path):
         try:
             data = json.loads(message)
             token = data.get("token")
+            user_data = None
+            if token:
+                task = asyncio.create_task(
+                    verify_token_with_auth_server(token)
+                )
+                user_data = await task
 
-            # Проверяем токен через внешний сервис аутентификации
-            user_data = await verify_token_with_auth_server(token)
-            if not user_data:
+                if not user_data:
+                    response = {
+                        "type": "response",
+                        "status": "error",
+                        "error": "invalid_token",
+                        "message": "Invalid or expired JWT token. Please re-authenticate.",
+                    }
+                    await websocket.send(
+                        json.dumps(response, ensure_ascii=False)
+                    )
+                    continue
+
+            # Проверяем наличие user_data перед извлечением user_id
+            if user_data:
+                user_id = user_data["result"]["phone"]
+                action = data.get("action")
+                type = data.get("type")
+            else:
+                # Отправляем сообщение об ошибке, если user_data отсутствует
                 response = {
                     "type": "response",
                     "status": "error",
-                    "error": "invalid_token",
-                    "message": "Invalid or expired JWT token. Please re-authenticate.",
+                    "error": "missing_user_data",
+                    "message": "User data not available. Cannot extract user_id.",
                 }
                 await websocket.send(json.dumps(response, ensure_ascii=False))
-                continue
-
-            user_id = user_data["result"]["phone"]
-            action = data.get("action")
-            type = data.get("type")
 
             # if action == "initial_chat":
             #     response = await handle_command(action, user_id, db)
@@ -181,7 +198,14 @@ async def handle_connection(websocket, path):
 
 async def main():
     try:
-        server = await websockets.serve(handle_connection, "0.0.0.0", 8083)
+        # Увеличиваем время ожидания пинга (интервал и тайм-аут)
+        server = await websockets.serve(
+            handle_connection,
+            "0.0.0.0",
+            8083,
+            ping_interval=30,  # Интервал между пингами (в секундах)
+            ping_timeout=20,  # Время ожидания ответа на пинг (в секундах)
+        )
         print("WebSocket server started on ws://0.0.0.0:8083")
         await server.wait_closed()
     except Exception as e:
