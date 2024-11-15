@@ -5,6 +5,7 @@ from models.models import Database, Base
 from sqlalchemy import and_
 
 logger = logging.getLogger(__name__)
+logging.getLogger("sqlalchemy").propagate = False
 
 
 class Postgres(Database):

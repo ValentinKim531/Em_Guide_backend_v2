@@ -25,12 +25,9 @@ async def send_to_gpt(dialogue_history, instruction):
         system_content = {
             "type": "text",
             "text": instruction,
-            "cache_control": {
-                "type": "ephemeral"
-            },  # Устанавливаем prompt-caching
+            "cache_control": {"type": "ephemeral"},
         }
 
-        # Формируем список сообщений
         messages = [
             {"role": "user", "content": message["content"]}
             for message in dialogue_history

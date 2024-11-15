@@ -4,7 +4,7 @@ import logging
 from models import User
 
 # Инициализация логирования
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 
 # Логирование
 logger = logging.getLogger(__name__)
