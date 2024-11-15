@@ -24,7 +24,7 @@ async def verify_token_with_auth_server(token):
     Проверка токена через внешний сервис аутентификации.
     """
     try:
-        url = "https://backoffice.daribar.com/api/v1/users"
+        url = "https://prod-backoffice.daribar.com/api/v1/users"
         headers = {"Authorization": f"Bearer {token}"}
         logger.info(f"Token: {token}")
         async with httpx.AsyncClient(timeout=10) as client:
