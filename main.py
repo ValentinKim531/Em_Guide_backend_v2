@@ -28,9 +28,9 @@ logging.getLogger("sqlalchemy.engine").disabled = True
 logging.getLogger("sqlalchemy.pool").disabled = True
 logging.getLogger("sqlalchemy.dialects").disabled = True
 
-#
+
 # logging.basicConfig(level=logging.INFO)
-#
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
@@ -54,10 +54,17 @@ class Message(BaseModel):
 async def startup_event():
     try:
         logger.info("Supabase startup_event.")
-        get_iam_token()
-        task = asyncio.create_task(refresh_iam_token())
-        _ = task
-        asyncio.ensure_future(websocket_server())
+
+        # Проверяем функции перед запуском
+        logger.info("Starting get_iam_token...")
+        asyncio.create_task(get_iam_token())
+
+        logger.info("Starting refresh_iam_token...")
+        asyncio.create_task(refresh_iam_token())
+
+        logger.info("Starting websocket_server...")
+        asyncio.create_task(websocket_server())
+
     except Exception as e:
         logger.error(f"Error during startup event: {e}")
 

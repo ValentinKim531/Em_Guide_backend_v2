@@ -25,6 +25,42 @@ logger = logging.getLogger(__name__)
 tasks = []
 
 
+async def safe_add_entity(db, user_data):
+    try:
+        await db.add_entity(user_data, User)
+    except Exception as e:
+        logger.error(f"Error adding user to database: {e}")
+
+
+async def safe_update_survey_data(db, user_id, gpt_response_content):
+    try:
+        await update_survey_data(db, user_id, gpt_response_content)
+    except Exception as e:
+        logger.error(f"Error in update_survey_data: {e}")
+
+
+async def register_user_if_not_exists(db, user_id):
+    """
+    Проверяет существование пользователя в фоне и добавляет, если его нет.
+    """
+    try:
+        # Проверка существующего пользователя
+        existing_user_task = asyncio.create_task(
+            db.get_entity_parameter(User, {"userid": str(user_id)})
+        )
+
+        # Ждём завершения проверки
+        existing_user = await existing_user_task
+        if not existing_user:
+            # Добавление пользователя в фоне
+            task = asyncio.create_task(
+                db.add_entity({"userid": str(user_id)}, User)
+            )
+            tasks.append(task)
+    except Exception as e:
+        logger.error(f"Error during user registration: {e}")
+
+
 async def process_user_message(user_id: str, message: dict, db: Postgres):
     """
     Обрабатывает ответ пользователя на основании его состояния (регистрация или опрос) с учетом истории диалога.
@@ -37,12 +73,10 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     logger.info(f"message_data: {message}")
 
     # регистрация пользователя по номеру телефона, если нет в базе users
-    existing_user = await db.get_entity_parameter(
-        User, {"userid": str(user_id)}
-    )
-    logger.info(f"existing_user: {existing_user}")
-    if not existing_user:
-        await db.add_entity({"userid": str(user_id)}, User)
+
+    # Создаём задачу для проверки существующего пользователя
+    task = asyncio.create_task(register_user_if_not_exists(db, user_id))
+    tasks.append(task)
 
     if is_registration:
         # Направляем запрос в GPT с инструкцией по регистрации
@@ -109,7 +143,7 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
             gpt_response_for_update = gpt_response_content.get("data")
             for message in gpt_response_for_update:
                 task = asyncio.create_task(
-                    update_survey_data(db, user_id, message)
+                    safe_update_survey_data(db, user_id, message)
                 )
                 tasks.append(task)
         except json.JSONDecodeError as e:
@@ -125,7 +159,7 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
         return gpt_response_content
 
     # Сохраняем сообщение пользователя в базу опросов
-    task = asyncio.create_task(update_survey_data(db, user_id, message))
+    task = asyncio.create_task(safe_update_survey_data(db, user_id, message))
     tasks.append(task)
 
     # Отправляем запрос в GPT с текущей историей диалога
@@ -188,7 +222,7 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
                             "birthdate": birthdate,
                         }
                         task = asyncio.create_task(
-                            db.add_entity(new_user_data, User)
+                            safe_add_entity(db, new_user_data)
                         )
                         tasks.append(task)
 
@@ -216,7 +250,7 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
 
         else:
             task = asyncio.create_task(
-                update_survey_data(db, user_id, gpt_response_content)
+                safe_update_survey_data(db, user_id, gpt_response_content)
             )
             tasks.append(task)
 

@@ -1,6 +1,8 @@
 import asyncio
 import ffmpeg
 import tempfile
+
+import httpx
 import requests
 import logging
 from utils.config import YANDEX_OAUTH_TOKEN, YANDEX_FOLDER_ID
@@ -11,21 +13,29 @@ YANDEX_IAM_TOKEN = None
 logger = logging.getLogger(__name__)
 
 
-def get_iam_token():
+async def get_iam_token():
     global YANDEX_IAM_TOKEN
     url = "https://iam.api.cloud.yandex.net/iam/v1/tokens"
     payload = {"yandexPassportOauthToken": YANDEX_OAUTH_TOKEN}
-    response = requests.post(url, json=payload)
-    response.raise_for_status()
-    YANDEX_IAM_TOKEN = response.json()["iamToken"]
-    logger.info(f"Received new IAM token: {YANDEX_IAM_TOKEN}")
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(url, json=payload)
+            response.raise_for_status()
+            YANDEX_IAM_TOKEN = response.json()["iamToken"]
+            logger.info(f"Received new IAM token: {YANDEX_IAM_TOKEN}")
+        except Exception as e:
+            logger.error(f"Error getting IAM token: {e}")
 
 
 async def refresh_iam_token():
     while True:
-        await asyncio.sleep(6 * 3600)
-        get_iam_token()
-        logger.info("IAM token refreshed")
+        try:
+            await asyncio.sleep(6 * 3600)  # Ждём 6 часов
+            await get_iam_token()  # Асинхронно обновляем токен
+            logger.info("IAM token refreshed")
+        except Exception as e:
+            logger.error(f"Error refreshing IAM token: {e}")
 
 
 def recognize_speech(audio_content, lang="ru-RU"):
