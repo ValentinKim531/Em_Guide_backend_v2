@@ -95,7 +95,8 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
             )
 
     # Извлекаем историю диалога
-    dialogue_history = await get_user_dialogue_history(user_id)
+    # dialogue_history = await get_user_dialogue_history(user_id)
+    dialogue_history = []
     logger.info(f"dialogue_history_begin: {dialogue_history}")
 
     user_language = "ru"
