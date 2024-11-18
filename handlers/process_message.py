@@ -17,9 +17,12 @@ from utils.redis_client import (
 )
 from crud import Postgres
 from services.audio_text_processor import process_audio_and_text
+import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
+
+tasks = []
 
 
 async def process_user_message(user_id: str, message: dict, db: Postgres):
@@ -91,9 +94,8 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     )
 
     # Сохраняем сообщение пользователя в базу данных
-    await save_message_to_db(
-        db, user_id, json.dumps(message, ensure_ascii=False), True
-    )
+    task = asyncio.create_task(save_message_to_db(db, user_id, message, True))
+    tasks.append(task)
 
     if message["action"] == "all_in_one_message":
         gpt_response = await send_to_gpt(dialogue_history, instruction)
@@ -106,7 +108,10 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
             logger.info(f"gpt_response_type: {type(gpt_response_content)}")
             gpt_response_for_update = gpt_response_content.get("data")
             for message in gpt_response_for_update:
-                await update_survey_data(db, user_id, message)
+                task = asyncio.create_task(
+                    update_survey_data(db, user_id, message)
+                )
+                tasks.append(task)
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding GPT response: {e}")
             return {
@@ -120,13 +125,17 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
         return gpt_response_content
 
     # Сохраняем сообщение пользователя в базу опросов
-    await update_survey_data(db, user_id, message)
+    task = asyncio.create_task(update_survey_data(db, user_id, message))
+    tasks.append(task)
 
     # Отправляем запрос в GPT с текущей историей диалога
     gpt_response = await send_to_gpt(dialogue_history, instruction)
 
     # Сохраняем ответ GPT в базу данных
-    await save_message_to_db(db, user_id, gpt_response, False)
+    task = asyncio.create_task(
+        save_message_to_db(db, user_id, gpt_response, False)
+    )
+    tasks.append(task)
 
     # Добавляем ответ GPT в историю
     dialogue_history.append({"role": "assistant", "content": gpt_response})
@@ -178,7 +187,10 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
                             "fio": fio,
                             "birthdate": birthdate,
                         }
-                        await db.add_entity(new_user_data, User)
+                        task = asyncio.create_task(
+                            db.add_entity(new_user_data, User)
+                        )
+                        tasks.append(task)
 
                         logger.info(
                             f"Created user {user_id} with fio: {fio} and birthdate: {birthdate}"
@@ -195,12 +207,18 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
                         "message": "Invalid data format for fio and birthdate",
                     }
             else:
-                await update_user_registration_data(
-                    db, user_id, gpt_response_content
+                task = asyncio.create_task(
+                    update_user_registration_data(
+                        db, user_id, gpt_response_content
+                    )
                 )
+                tasks.append(task)
 
         else:
-            await update_survey_data(db, user_id, gpt_response_content)
+            task = asyncio.create_task(
+                update_survey_data(db, user_id, gpt_response_content)
+            )
+            tasks.append(task)
 
     if "question" in gpt_response_content:
         # Получаем индекс текущего вопроса

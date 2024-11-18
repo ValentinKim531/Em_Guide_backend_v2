@@ -1,3 +1,4 @@
+import json
 import logging
 from crud import Postgres
 from models import Survey
@@ -15,6 +16,10 @@ async def update_survey_data(db: Postgres, user_id: str, message: dict):
     logger.info(f"message_for_updating_survey: {message}")
 
     try:
+        # Преобразуем content в JSON-строку, если это dict
+        if isinstance(message, dict):
+            content = json.dumps(message, ensure_ascii=False)
+
         # Текущее время
         current_time = datetime.now(timezone.utc)
 

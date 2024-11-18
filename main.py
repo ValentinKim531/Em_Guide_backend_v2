@@ -9,26 +9,28 @@ from services.yandex_service import get_iam_token, refresh_iam_token
 from server import main as websocket_server
 
 
-# Удаляем все предыдущие обработчики
-for handler in logging.root.handlers[:]:
-    logging.root.removeHandler(handler)
-
-# Создаем новый обработчик
-handler = logging.StreamHandler()
-handler.setLevel(logging.WARNING)
-formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-handler.setFormatter(formatter)
-logging.root.addHandler(handler)
-logging.root.setLevel(logging.WARNING)
+# # Удаляем все предыдущие обработчики
+# for handler in logging.root.handlers[:]:
+#     logging.root.removeHandler(handler)
+#
+# # Создаем новый обработчик
+# handler = logging.StreamHandler()
+# handler.setLevel(logging.WARNING)
+# formatter = logging.Formatter(
+#     "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+# )
+# handler.setFormatter(formatter)
+# logging.root.addHandler(handler)
+# logging.root.setLevel(logging.WARNING)
 
 logging.getLogger("sqlalchemy").disabled = True
 logging.getLogger("sqlalchemy.engine").disabled = True
 logging.getLogger("sqlalchemy.pool").disabled = True
 logging.getLogger("sqlalchemy.dialects").disabled = True
 
-
+#
+# logging.basicConfig(level=logging.INFO)
+#
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
