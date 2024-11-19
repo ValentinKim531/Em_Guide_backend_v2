@@ -73,10 +73,16 @@ async def update_survey_data(db: Postgres, user_id: str, message: dict):
                     Survey,
                 )
             elif message["index"] == 3 and message["text"]:
+                if not isinstance(message["text"], str):
+                    # Преобразуем только если это не строка
+                    pain_intensity = str(message["text"])
+                else:
+                    pain_intensity = message["text"]
+
                 await db.update_entity_parameter(
                     (survey.survey_id, user_id),
                     "pain_intensity",
-                    message["text"],
+                    pain_intensity,
                     Survey,
                 )
             elif message["index"] == 4 and message["text"]:
@@ -118,7 +124,11 @@ async def update_survey_data(db: Postgres, user_id: str, message: dict):
             elif message["index"] == 2 and message["text"]:
                 new_survey_data["medicament_today"] = message["text"]
             elif message["index"] == 3 and message["text"]:
-                new_survey_data["pain_intensity"] = message["text"]
+                if not isinstance(message["text"], str):
+                    # Преобразуем только если это не строка
+                    new_survey_data["pain_intensity"] = str(message["text"])
+                else:
+                    new_survey_data["pain_intensity"] = message["text"]
             elif message["index"] == 4 and message["text"]:
                 new_survey_data["pain_area"] = message["text"]
             elif message["index"] == 5 and message["text"]:
