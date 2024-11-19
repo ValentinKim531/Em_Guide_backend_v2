@@ -32,12 +32,18 @@ async def process_audio(audio_content_encoded, user_language):
         try:
             ffmpeg_command = [
                 "ffmpeg",
+                "-loglevel",
+                "error",
                 "-y",
                 "-i",
                 temp_input.name,
                 temp_output.name,
             ]
-            subprocess.run(ffmpeg_command, check=True)
+            subprocess.run(
+                ffmpeg_command,
+                stdout=subprocess.DEVNULL,  # Отключение стандартного вывода
+                stderr=subprocess.DEVNULL,  # Отключение вывода ошибок
+            )
             logger.info("Successfully converted AAC to WAV using ffmpeg.")
         except subprocess.CalledProcessError as e:
             logger.error(f"ffmpeg failed to convert AAC to WAV: {e}")

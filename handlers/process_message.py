@@ -70,7 +70,6 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     # is_registration = await get_registration_status(user_id)
     is_registration = False
     logger.info(f"is_registration for user is: {is_registration}")
-    logger.info(f"message_data: {message}")
 
     # регистрация пользователя по номеру телефона, если нет в базе users
 

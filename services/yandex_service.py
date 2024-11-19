@@ -45,9 +45,6 @@ def recognize_speech(audio_content, lang="ru-RU"):
         url = f"https://stt.api.cloud.yandex.net/speech/v1/stt:recognize?folderId={YANDEX_FOLDER_ID}&lang={lang}"
         headers = {"Authorization": f"Bearer {YANDEX_IAM_TOKEN}"}
 
-        logger.info(
-            f"Sending request to Yandex STT API with URL: {url} and headers: {headers}"
-        )
         response = requests.post(url, headers=headers, data=audio_content)
 
         if response.status_code == 200:
@@ -57,7 +54,6 @@ def recognize_speech(audio_content, lang="ru-RU"):
                     "Recognition result is empty. Asking user to repeat the question."
                 )
                 return None
-            logger.info(f"Recognition result: {result}")
             return result
         else:
             error_message = f"Failed to recognize speech, status code: {response.status_code}, response text: {response.text}"
@@ -72,7 +68,7 @@ def convert_mp3_to_aac(input_mp3, output_aac):
     try:
         subprocess.run(
             ["ffmpeg", "-y", "-i", input_mp3, "-c:a", "aac", output_aac],
-            check=True,
+            check=False,
         )
         print(f"Conversion successful: {output_aac}")
     except subprocess.CalledProcessError as e:
@@ -104,7 +100,7 @@ def synthesize_speech(text, lang_code):
         }
         response = requests.post(url, headers=headers, data=data, stream=True)
         if response.status_code == 200:
-            logger.info(f"Audio response content: OK for text: '{text[:100]}'")
+            logger.info(f"Audio response content: OK for text: '{text[:10]}'")
 
             input_audio = io.BytesIO(response.content)
             temp_input = tempfile.NamedTemporaryFile(

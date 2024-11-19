@@ -139,7 +139,9 @@ async def send_to_gpt(dialogue_history, instruction):
         logger.info(f"GPT API request duration: {duration:.2f} seconds")
 
         # Логируем и возвращаем результат
-        logger.info(f"GPT response: {response}")
+        logger.info(
+            f"GPT_response_content: {response.choices[0].message.content}"
+        )
         return response.choices[0].message.content
 
     except Exception as e:
