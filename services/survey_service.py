@@ -1,11 +1,12 @@
 import json
-import logging
 from crud import Postgres
 from models import Survey
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import and_, select
+from utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+
+logger = get_logger(name="survey_service")
 
 
 async def update_survey_data(db: Postgres, user_id: str, message: dict):

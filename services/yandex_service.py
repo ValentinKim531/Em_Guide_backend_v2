@@ -1,16 +1,16 @@
 import asyncio
 import ffmpeg
 import tempfile
-
 import httpx
 import requests
-import logging
+from utils.logging_config import get_logger
 from utils.config import YANDEX_OAUTH_TOKEN, YANDEX_FOLDER_ID
 import subprocess
 import io
 
 YANDEX_IAM_TOKEN = None
-logger = logging.getLogger(__name__)
+
+logger = get_logger(name="yandex_service")
 
 
 async def get_iam_token():

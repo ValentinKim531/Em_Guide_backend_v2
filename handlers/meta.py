@@ -1,13 +1,9 @@
 import json
-import logging
-
 from models import User
+from utils.logging_config import get_logger
 
-# Инициализация логирования
-logging.basicConfig(level=logging.WARNING)
 
-# Логирование
-logger = logging.getLogger(__name__)
+logger = get_logger(name="meta")
 
 
 async def get_user_language(user_id, message_language, db):

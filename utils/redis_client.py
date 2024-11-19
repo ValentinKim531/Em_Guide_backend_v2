@@ -1,14 +1,14 @@
 import aioredis
-import logging
 from utils.config import REDIS_URL
 from collections import defaultdict
 import json
+from utils.logging_config import get_logger
 
 # Инициализация подключения к Redis
 redis = aioredis.from_url(REDIS_URL)
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(name="redis_client")
 
 
 async def get_user_dialogue_history(user_id):

@@ -1,8 +1,8 @@
-import logging
 from crud import Postgres
 from models import User
+from utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(name="user_registration_service")
 
 
 async def update_user_registration_data(

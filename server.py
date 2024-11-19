@@ -5,7 +5,7 @@ import json
 from crud import Postgres
 from handlers.process_message import process_user_message
 from models import User
-import logging
+from utils.logging_config import get_logger
 from services.database import async_session
 import ftfy
 
@@ -16,7 +16,9 @@ from utils.redis_client import (
 )
 
 db = Postgres(async_session)
-logger = logging.getLogger(__name__)
+
+
+logger = get_logger(name="server")
 
 
 async def verify_token_with_auth_server(token):

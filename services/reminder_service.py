@@ -1,10 +1,9 @@
-import logging
 from datetime import datetime
-
+from utils.logging_config import get_logger
 from crud import Postgres
 from models import User
 
-logger = logging.getLogger(__name__)
+logger = get_logger(name="reminder_service")
 
 
 async def change_reminder_time(user_id: str, reminder_time: str, db: Postgres):

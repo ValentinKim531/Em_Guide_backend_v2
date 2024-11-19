@@ -1,13 +1,15 @@
 import json
-import logging
 import anthropic
 import asyncio
 from utils.config import ANTHROPIC_API_KEY
 import time
+from openai import AsyncOpenAI
+from utils.config import OPENAI_API_KEY
+from utils.logging_config import get_logger
+
+logger = get_logger(name="openai_service")
 
 
-# logger = logging.getLogger(__name__)
-#
 # client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 #
 #
@@ -102,12 +104,7 @@ import time
 #         return "Error processing the request."
 
 
-import logging
-from openai import AsyncOpenAI
-from utils.config import OPENAI_API_KEY
-
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
-logger = logging.getLogger(__name__)
 
 
 async def send_to_gpt(dialogue_history, instruction):
@@ -121,7 +118,9 @@ async def send_to_gpt(dialogue_history, instruction):
         messages = [
             {"role": "system", "content": instruction}
         ] + dialogue_history
-        logger.info(f"messages_to_GPT: {messages}")
+        logger.info(
+            f"message_to_GPT: {messages[-1].get('content', 'No content found')}"
+        )
 
         # Замер времени выполнения
         start_time = time.time()

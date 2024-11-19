@@ -1,11 +1,11 @@
-import logging
 from typing import Optional, Union, Any, Type
 from sqlalchemy.future import select
 from models.models import Database, Base
 from sqlalchemy import and_
+from utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
-logging.getLogger("sqlalchemy").propagate = False
+
+logger = get_logger(name="crud")
 
 
 class Postgres(Database):

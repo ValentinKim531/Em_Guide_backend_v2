@@ -5,11 +5,11 @@ import asyncio
 import subprocess
 import tempfile
 from pydub import AudioSegment
-import logging
 from pydub.exceptions import CouldntDecodeError
 from .yandex_service import recognize_speech
+from utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(name="audio_text_processor")
 
 
 async def process_audio(audio_content_encoded, user_language):

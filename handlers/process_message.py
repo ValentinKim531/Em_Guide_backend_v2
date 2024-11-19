@@ -18,10 +18,10 @@ from utils.redis_client import (
 from crud import Postgres
 from services.audio_text_processor import process_audio_and_text
 import asyncio
-import logging
+from utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
 
+logger = get_logger(name="process_message")
 tasks = []
 
 

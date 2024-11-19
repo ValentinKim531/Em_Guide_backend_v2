@@ -1,13 +1,12 @@
-import logging
 import pandas as pd
 from io import BytesIO
 import json
 import aiofiles
 from crud import Postgres
 from models import Survey
+from utils.logging_config import get_logger
 
-
-logger = logging.getLogger(__name__)
+logger = get_logger(name="statistics_service")
 
 
 async def generate_statistics_file(user_id, db: Postgres):

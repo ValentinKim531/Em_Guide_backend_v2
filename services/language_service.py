@@ -1,8 +1,8 @@
-import logging
 from crud import Postgres
 from models import User
+from utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(name="language_service")
 
 
 async def change_language(user_id: str, language: str, db: Postgres):

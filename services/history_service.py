@@ -1,12 +1,9 @@
 import json
-import logging
-
 from crud import Postgres
 from models import Message
+from utils.logging_config import get_logger
 
-
-# Логирование
-logger = logging.getLogger(__name__)
+logger = get_logger(name="history_service")
 
 
 async def generate_chat_history(user_id, db: Postgres):
