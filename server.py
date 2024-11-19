@@ -113,98 +113,159 @@ async def handle_connection(websocket, path):
     """
     Основная логика обработки сообщений по WebSocket.
     """
-    async for message in websocket:
-        try:
-            data = json.loads(message)
-            token = data.get("token")
-            user_data = None
-            if token:
-                task = asyncio.create_task(
-                    verify_token_with_auth_server(token)
-                )
-                user_data = await task
+    try:
+        async for message in websocket:
+            try:
+                data = json.loads(message)
+                token = data.get("token")
+                user_data = None
 
-                if not user_data:
+                # Обработка токена
+                if token:
+                    try:
+                        user_data = await asyncio.create_task(
+                            verify_token_with_auth_server(token)
+                        )
+                    except Exception as token_error:
+                        logger.error(f"Error verifying token: {token_error}")
+                        response = {
+                            "type": "response",
+                            "status": "error",
+                            "error": "token_verification_error",
+                            "message": "Failed to verify authentication token.",
+                        }
+                        await websocket.send(
+                            json.dumps(response, ensure_ascii=False)
+                        )
+                        continue
+
+                    if not user_data:
+                        response = {
+                            "type": "response",
+                            "status": "error",
+                            "error": "invalid_token",
+                            "message": "Invalid or expired JWT token. Please re-authenticate.",
+                        }
+                        await websocket.send(
+                            json.dumps(response, ensure_ascii=False)
+                        )
+                        continue
+                else:
+                    logger.warning("Token not provided in the request.")
                     response = {
                         "type": "response",
                         "status": "error",
-                        "error": "invalid_token",
-                        "message": "Invalid or expired JWT token. Please re-authenticate.",
+                        "error": "missing_token",
+                        "message": "Authentication token is required but was not provided.",
                     }
                     await websocket.send(
                         json.dumps(response, ensure_ascii=False)
                     )
                     continue
-            else:
-                logger.warning("Token not provided in the request.")
-                response = {
-                    "type": "response",
-                    "status": "error",
-                    "error": "missing_token",
-                    "message": "Authentication token is required but was not provided.",
-                }
-                await websocket.send(json.dumps(response, ensure_ascii=False))
 
-            # Проверяем наличие user_data перед извлечением user_id
-            if user_data:
-                user_id = user_data["result"]["phone"]
-                action = data.get("action")
-                type = data.get("type")
-            else:
-                # Отправляем сообщение об ошибке, если user_data отсутствует
-                response = {
-                    "type": "response",
-                    "status": "error",
-                    "error": "missing_user_data",
-                    "message": "User data not available. Cannot extract user_id.",
-                }
-                await websocket.send(json.dumps(response, ensure_ascii=False))
+                # Проверяем наличие user_data
+                if user_data:
+                    user_id = user_data["result"]["phone"]
+                    action = data.get("action")
+                    message_type = data.get("type")
+                else:
+                    response = {
+                        "type": "response",
+                        "status": "error",
+                        "error": "missing_user_data",
+                        "message": "User data not available. Cannot extract user_id.",
+                    }
+                    await websocket.send(
+                        json.dumps(response, ensure_ascii=False)
+                    )
+                    continue
 
-            # if action == "initial_chat":
-            #     response = await handle_command(action, user_id, db)
-            #     await websocket.send(json.dumps(response, ensure_ascii=False))
-            if action == "export_stats":
-                response = await handle_command(action, user_id, db)
-                await websocket.send(json.dumps(response, ensure_ascii=False))
+                # if action == "initial_chat":
+                #     response = await handle_command(action, user_id, db)
+                #     await websocket.send(json.dumps(response, ensure_ascii=False))
 
-            # Обработка сообщений (например, ответы на вопросы опроса)
-            if type == "message" or (
-                type == "command" and action == "all_in_one_message"
-            ):
-                message_data = data.get("data")
-                message_data["action"] = data.get("action")
+                # Обработка команды export_stats
+                if action == "export_stats":
+                    try:
+                        response = await handle_command(action, user_id, db)
+                        await websocket.send(
+                            json.dumps(response, ensure_ascii=False)
+                        )
+                    except Exception as command_error:
+                        logger.error(
+                            f"Error handling command 'export_stats': {command_error}"
+                        )
+                        await websocket.send(
+                            json.dumps(
+                                {
+                                    "type": "response",
+                                    "status": "error",
+                                    "error": "command_error",
+                                    "message": "Failed to process the 'export_stats' command.",
+                                },
+                                ensure_ascii=False,
+                            )
+                        )
+                        continue
 
-                if "text" in message_data:
-                    fixed_text = ftfy.fix_text(message_data["text"])
-                    message_data["text"] = fixed_text
+                # Обработка сообщений
+                if message_type == "message" or (
+                    message_type == "command"
+                    and action == "all_in_one_message"
+                ):
+                    try:
+                        message_data = data.get("data", {})
+                        message_data["action"] = action
 
-                response = await process_user_message(
-                    user_id, message_data, db
+                        if "text" in message_data:
+                            fixed_text = ftfy.fix_text(message_data["text"])
+                            message_data["text"] = fixed_text
+
+                        response = await process_user_message(
+                            user_id, message_data, db
+                        )
+                        await websocket.send(
+                            json.dumps(response, ensure_ascii=False)
+                        )
+                    except Exception as message_error:
+                        logger.error(
+                            f"Error processing user message: {message_error}"
+                        )
+                        await websocket.send(
+                            json.dumps(
+                                {
+                                    "type": "response",
+                                    "status": "error",
+                                    "error": "message_processing_error",
+                                    "message": "Failed to process the user message.",
+                                },
+                                ensure_ascii=False,
+                            )
+                        )
+            except websockets.exceptions.ConnectionClosedError as e:
+                logger.warning(f"Connection closed unexpectedly: {e}")
+                break
+            except Exception as message_processing_error:
+                logger.error(
+                    f"Error processing message: {message_processing_error}"
                 )
-                await websocket.send(json.dumps(response, ensure_ascii=False))
-
-        except websockets.exceptions.ConnectionClosedError as e:
-            logger.error(f"Connection closed unexpectedly: {e}")
-        except Exception as e:
-            logger.error(f"Error handling connection: {e}")
-            try:
                 await websocket.send(
                     json.dumps(
                         {
                             "type": "response",
                             "status": "error",
-                            "error": "server_error",
-                            "message": str(e),
+                            "error": "message_error",
+                            "message": str(message_processing_error),
                         },
                         ensure_ascii=False,
                     )
                 )
-            except websockets.exceptions.ConnectionClosedError:
-                logger.warning(
-                    "Tried to send error message, but the connection was already closed."
-                )
-            except Exception as send_error:
-                logger.error(f"Failed to send error message: {send_error}")
+    except websockets.exceptions.ConnectionClosedError as e:
+        logger.warning(f"WebSocket connection closed unexpectedly: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error in WebSocket handler: {e}")
+    finally:
+        logger.info("WebSocket connection handler finished.")
 
 
 async def main():
@@ -214,8 +275,8 @@ async def main():
             handle_connection,
             "0.0.0.0",
             8083,
-            ping_interval=30,  # Интервал между пингами (в секундах)
-            ping_timeout=20,  # Время ожидания ответа на пинг (в секундах)
+            ping_interval=60,  # Интервал между пингами (в секундах)
+            ping_timeout=30,  # Время ожидания ответа на пинг (в секундах)
         )
         print("WebSocket server started on ws://0.0.0.0:8083")
         await server.wait_closed()
