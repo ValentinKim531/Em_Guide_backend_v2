@@ -227,6 +227,7 @@ async def handle_connection(websocket, path):
                         await websocket.send(
                             json.dumps(response, ensure_ascii=False)
                         )
+                        logger.info(f"Response_sent: {response}")
                     except Exception as message_error:
                         logger.error(
                             f"Error processing user message: {message_error}"
