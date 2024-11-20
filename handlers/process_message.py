@@ -76,7 +76,7 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
     # Создаём задачу для проверки существующего пользователя
     task = asyncio.create_task(register_user_if_not_exists(db, user_id))
     tasks.append(task)
-
+    logger.info(f"message111: {message}")
     if is_registration:
         # Направляем запрос в GPT с инструкцией по регистрации
         instruction = ASSISTANT2_ID
@@ -110,6 +110,7 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
                 "action": "all_in_one_message",
                 "error": "server_error",
                 "message": "К сожалению, не удалось распознать ваш голос. Попробуйте, пожалуйста, ещё раз.",
+                "data": message,
             }
         elif instruction == ASSISTANT_ID:
             return {
@@ -118,6 +119,7 @@ async def process_user_message(user_id: str, message: dict, db: Postgres):
                 "action": "message",
                 "error": "server_error",
                 "message": "К сожалению, не удалось распознать ваш ответ. Попробуйте, пожалуйста, ещё раз.",
+                "data": message,
             }
 
     message["text"] = text
