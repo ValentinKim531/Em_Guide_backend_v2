@@ -9,6 +9,7 @@ from handlers.process_message import (
 )
 from services.create_realtime_session import create_realtime_session
 from services.survey_service import update_survey_data_live_barsik
+from utils.config import URL_VERIFY_TOKEN
 from utils.logging_config import get_logger
 from services.database import async_session
 import ftfy
@@ -30,7 +31,7 @@ async def verify_token_with_auth_server(token):
     Проверка токена через внешний сервис аутентификации.
     """
     try:
-        url = "https://backoffice.daribar.com/api/v1/users"
+        url = URL_VERIFY_TOKEN
         headers = {"Authorization": f"Bearer {token}"}
         logger.info(f"Token: {token}")
         async with httpx.AsyncClient(timeout=10) as client:
