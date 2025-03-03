@@ -3,8 +3,12 @@ import httpx
 import websockets
 import json
 from crud import Postgres
-from handlers.process_message import process_user_message
-from models import User
+from handlers.process_message import (
+    process_user_message,
+    register_user_if_not_exists,
+)
+from services.create_realtime_session import create_realtime_session
+from services.survey_service import update_survey_data_live_barsik
 from utils.logging_config import get_logger
 from services.database import async_session
 import ftfy
@@ -26,7 +30,7 @@ async def verify_token_with_auth_server(token):
     Проверка токена через внешний сервис аутентификации.
     """
     try:
-        url = "https://prod-backoffice.daribar.com/api/v1/users"
+        url = "https://backoffice.daribar.com/api/v1/users"
         headers = {"Authorization": f"Bearer {token}"}
         logger.info(f"Token: {token}")
         async with httpx.AsyncClient(timeout=10) as client:
@@ -183,6 +187,101 @@ async def handle_connection(websocket, path):
                 # if action == "initial_chat":
                 #     response = await handle_command(action, user_id, db)
                 #     await websocket.send(json.dumps(response, ensure_ascii=False))
+
+                if action == "initial_voice_chat":
+                    try:
+                        asyncio.create_task(  # noqa
+                            register_user_if_not_exists(db, user_id)  # noqa
+                        )  # noqa
+                        response = await create_realtime_session()
+                        # Извлекаем client_secret
+                        client_secret = response.get("client_secret")
+
+                        # Формируем ответ в нужном формате
+                        response_data = {
+                            "type": "system",
+                            "status": "success",
+                            "action": "initial_voice_chat",
+                            "data": {
+                                "client_secret": {
+                                    "value": client_secret.get("value"),
+                                    "expires_at": client_secret.get(
+                                        "expires_at"
+                                    ),
+                                }
+                            },
+                        }
+
+                        await websocket.send(
+                            json.dumps(response_data, ensure_ascii=False)
+                        )
+
+                    except Exception as command_error:
+                        logger.error(
+                            f"Error handling command 'initial_voice_chat': {command_error}"
+                        )
+                        await websocket.send(
+                            json.dumps(
+                                {
+                                    "type": "response",
+                                    "status": "error",
+                                    "error": "command_error",
+                                    "message": "Failed to process the 'initial_voice_chat' command.",
+                                },
+                                ensure_ascii=False,
+                            )
+                        )
+                        continue
+
+                if action == "save_voice_chat_results":
+                    try:
+                        message_data = data.get("data", {}).get("json", {})
+                        # Корректируем только строковые значения в словаре
+                        message_data_fixed = {
+                            key: (
+                                ftfy.fix_text(value)
+                                if isinstance(value, str)
+                                else str(value)
+                            )
+                            for key, value in message_data.items()
+                        }
+                        logger.info(
+                            f"message_data_save_voice_chat_results: {message_data_fixed}"
+                        )
+                        asyncio.create_task(  # noqa
+                            register_user_if_not_exists(db, user_id)  # noqa
+                        )  # noqa
+
+                        await update_survey_data_live_barsik(
+                            db, user_id, message_data_fixed
+                        )
+                        await websocket.send(
+                            json.dumps(
+                                {
+                                    "type": "response",
+                                    "status": "success",
+                                    "action": "save_voice_chat_results",
+                                },
+                                ensure_ascii=False,
+                            )
+                        )
+
+                    except Exception as command_error:
+                        logger.error(
+                            f"Error handling command 'save_voice_chat_results': {command_error}"
+                        )
+                        await websocket.send(
+                            json.dumps(
+                                {
+                                    "type": "response",
+                                    "status": "error",
+                                    "error": "command_error",
+                                    "message": "Failed to process the 'save_voice_chat_results' command.",
+                                },
+                                ensure_ascii=False,
+                            )
+                        )
+                        continue
 
                 # Обработка команды export_stats
                 if action == "export_stats":

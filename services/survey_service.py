@@ -143,3 +143,81 @@ async def update_survey_data(db: Postgres, user_id: str, message: dict):
 
     except Exception as e:
         logger.error(f"Error updating survey data: {e}")
+
+
+async def update_survey_data_live_barsik(
+    db: Postgres, user_id: str, message: dict
+):
+    """
+    Обновляет информацию по ежедневному опросу на основании полученных данных.
+    Если запись по опросу еще не существует или была создана более 1 часа назад, создается новая.
+    """
+    logger.info(f"message_for_updating_survey: {message}")
+
+    try:
+        # Преобразуем content в JSON-строку, если это dict
+        if isinstance(message, dict):
+            content = json.dumps(message, ensure_ascii=False)
+
+        # Текущее время
+        current_time = datetime.now(timezone.utc)
+
+        # Начало сегодняшнего дня
+        today_start = current_time.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+
+        # Порог времени для проверки на запись созданную менее 1 часа назад
+        one_hour_ago = current_time - timedelta(hours=1)
+
+        logger.info(f"Current time (UTC): {current_time}")
+        logger.info(f"Today start (UTC): {today_start}")
+        logger.info(f"Time 1 hour ago: {one_hour_ago}")
+
+        # Поиск записи с userid и фильтрация по дате создания
+        async with db.async_session() as session:
+            query = select(Survey).where(
+                and_(
+                    Survey.userid == user_id,
+                    Survey.created_at >= today_start,  # Запись за сегодня
+                )
+            )
+            result = await session.execute(query)
+            survey = result.scalars().first()
+
+        # Если запись существует и была создана менее 1 часа назад, обновляем её
+        if survey and survey.created_at >= one_hour_ago:
+            logger.info(f"survey_created_at: {survey.created_at}")
+            logger.info(f"Found recent survey for user {user_id}, updating...")
+
+            # Проходим по всем ключам в `message` и обновляем только переданные поля
+            for key, value in message.items():
+                if (
+                    hasattr(survey, key) and value
+                ):  # Проверяем, есть ли такое поле в модели
+                    await db.update_entity_parameter(
+                        (survey.survey_id, user_id),
+                        key,
+                        value,
+                        Survey,
+                    )
+                    logger.info(f"Updated {key} for user {user_id}")
+
+        # Если записи нет или она устарела – создаем новую
+        else:
+            logger.info(
+                f"No recent survey found or survey is older than 1 hour. Creating a new survey for user {user_id}."
+            )
+
+            # Создаем новую запись с user_id и переданными полями
+            new_survey_data = {"userid": user_id}
+            for key, value in message.items():
+                if value:  # Записываем только непустые значения
+                    new_survey_data[key] = value
+
+            # Добавляем новую запись
+            await db.add_entity(new_survey_data, Survey)
+            logger.info(f"Created new survey for user {user_id}")
+
+    except Exception as e:
+        logger.error(f"Error updating survey data: {e}")
