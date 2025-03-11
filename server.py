@@ -236,7 +236,7 @@ async def handle_connection(websocket, path):
 
                 if action == "save_voice_chat_results":
                     try:
-                        message_data = data.get("data", {}).get("json", {})
+                        message_data = data.get("data", {})
                         # Корректируем только строковые значения в словаре
                         message_data_fixed = {
                             key: (
